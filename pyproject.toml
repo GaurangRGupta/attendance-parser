@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "attendance-parser"
+dynamic = ["version"]
+description = "Parse an NMIMS detailed attendance PDF and write a monthly-style summary PDF"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Gaurang R Gupta" }]
+dependencies = [
+    "pdfplumber>=0.11",
+    "reportlab>=4.2",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[project.scripts]
+attendance-parse = "attendance_parser.cli:app"
+
+[tool.hatch.version]
+path = "src/attendance_parser/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/attendance_parser"]
+
+# Documents/ is often OneDrive-backed; hardlinks fail there.
+[tool.uv]
+link-mode = "copy"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q"

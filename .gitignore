@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+*.egg-info/
+summary.pdf
+summary.json
+sample_docs/_preview/
+sample_docs/_generated*
+# Personal SAP dumps (name, student number, roll, attendance). Never commit.
+sample_docs/*.pdf
+
