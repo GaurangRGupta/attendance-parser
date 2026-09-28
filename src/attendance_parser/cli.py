@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import click
 import typer
 
 from attendance_parser import __version__
@@ -19,9 +20,7 @@ app = typer.Typer(
     help="Build a monthly-style attendance summary PDF from a detailed SAP dump.",
     add_completion=False,
     pretty_exceptions_show_locals=False,
-    invoke_without_command=True,
     no_args_is_help=True,
-    context_settings={"allow_interspersed_args": True},
 )
 
 
@@ -42,7 +41,49 @@ def _parse_cli_date(value: str | None, flag: str):
 
 
 @app.callback()
-def main(
+def _root(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-V",
+        help="Show the version and exit.",
+        callback=_show_version,
+        is_eager=True,
+    ),
+) -> None:
+    """Build a monthly-style attendance summary PDF from a detailed SAP dump."""
+
+
+@app.command()
+def version() -> None:
+    """Show the version and exit."""
+    typer.echo(f"attendance-parse {__version__}")
+
+
+@app.command("help")
+def help_command(
+    ctx: typer.Context,
+    command_name: str | None = typer.Argument(
+        None,
+        help="Subcommand to describe (parse, version, help).",
+    ),
+) -> None:
+    """Show help for the application or a specific command."""
+    parent_ctx = ctx.parent or ctx
+    group = parent_ctx.command
+    if command_name is None:
+        typer.echo(group.get_help(parent_ctx))
+        return
+    sub = group.get_command(parent_ctx, command_name)
+    if sub is None:
+        typer.echo(f"Unknown command: {command_name}", err=True)
+        raise typer.Exit(code=2)
+    with click.Context(sub, info_name=command_name, parent=parent_ctx) as sub_ctx:
+        typer.echo(sub.get_help(sub_ctx))
+
+
+@app.command()
+def parse(
     pdf: Path = typer.Argument(
         ...,
         exists=True,
@@ -73,30 +114,27 @@ def main(
         "--to",
         help="Inclusive end date (dd.MM.yyyy). Default: duration on the dump.",
     ),
-    lab_batch: str = typer.Option(
-        "J1",
+    lab_batch: list[str] = typer.Option(
+        [],
         "--lab-batch",
-        help="Keep only this lab batch when a P-row is tagged J1/J2/… Unbatched labs are always kept.",
+        help=(
+            "If a practical row has a batch tag, keep it only when the tag is one of these "
+            "(repeatable). Tags are the trailing letter+digits code on the course name; they "
+            "are not always J-prefixed and can differ by course. Practicals with no tag are "
+            "always kept. Default: keep every practical row in the dump."
+        ),
     ),
     threshold: float = typer.Option(
         0.8,
         "--threshold",
         help="Exam-eligibility fraction per course (combined theory + practical).",
     ),
-    version: bool = typer.Option(
-        False,
-        "--version",
-        "-V",
-        help="Show the version and exit.",
-        callback=_show_version,
-        is_eager=True,
-    ),
 ) -> None:
-    """Build a monthly-style attendance summary PDF from a detailed SAP dump."""
+    """Parse a detailed dump and write a monthly-style summary PDF."""
     try:
         report = build_report(
             pdf,
-            lab_batch=lab_batch,
+            lab_batches=lab_batch or None,
             date_from=_parse_cli_date(date_from, "--from"),
             date_to=_parse_cli_date(date_to, "--to"),
             threshold=threshold,

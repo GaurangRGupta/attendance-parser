@@ -29,7 +29,7 @@ def summarize(
     window_from: date | None = None,
     window_to: date | None = None,
     threshold: float = 0.8,
-    lab_batch: str = "J1",
+    lab_batches: list[str] | None = None,
 ) -> Report:
     start = window_from or student.report_from
     end = window_to or student.report_to
@@ -121,7 +121,7 @@ def summarize(
         courses=courses,
         nu_excluded=len(pending_nu),
         exam_blockers=blockers,
-        lab_batch=lab_batch,
+        lab_batch=_lab_batch_label(lab_batches),
         threshold=threshold,
         slots_in_window=len(windowed),
         generated_at=dt.now().strftime("%d.%m.%Y %H:%M:%S"),
@@ -154,3 +154,8 @@ def _percentage(present: int, held: int) -> float:
 
 def format_header_date(value: date) -> str:
     return value.strftime("%d.%m.%Y")
+
+
+def _lab_batch_label(lab_batches: list[str] | None) -> str:
+    tags = [b.strip().upper() for b in (lab_batches or []) if b and b.strip()]
+    return ",".join(tags) if tags else "all"

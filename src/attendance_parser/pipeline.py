@@ -14,18 +14,18 @@ from attendance_parser.summarize import summarize
 def build_report(
     path: str | Path,
     *,
-    lab_batch: str = "J1",
+    lab_batches: list[str] | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
     threshold: float = 0.8,
 ) -> Report:
     extracted = extract_document(path)
-    slots = normalize_slots(extracted.slots, lab_batch=lab_batch)
+    slots = normalize_slots(extracted.slots, lab_batches=lab_batches)
     return summarize(
         extracted.student,
         slots,
         window_from=date_from,
         window_to=date_to,
         threshold=threshold,
-        lab_batch=lab_batch,
+        lab_batches=lab_batches,
     )

@@ -1,6 +1,7 @@
 from datetime import date
 
 from attendance_parser.extract import extract_document
+from attendance_parser.normalize import normalize_slots
 
 
 def test_extract_header_and_row_count(sample_detailed):
@@ -27,3 +28,15 @@ def test_extract_first_and_last_slots(sample_detailed):
     last = slots[-1]
     assert last.status == "NU"
     assert last.date == date(2026, 9, 18)
+
+
+def test_extract_synthetic_header_and_rows(synthetic_detailed):
+    extracted = extract_document(synthetic_detailed)
+    assert extracted.student.name == "TEST STUDENT"
+    assert extracted.student.number == "00000000000"
+    assert extracted.student.roll == "T001"
+    assert extracted.student.report_from == date(2026, 7, 1)
+    assert extracted.student.report_to == date(2026, 7, 31)
+    assert [s.sr for s in extracted.slots] == [1, 2, 3, 4, 5]
+    slots = normalize_slots(extracted.slots)
+    assert {s.batch for s in slots if s.lecture_type == "PRAC"} == {"A1", "B2", None}
