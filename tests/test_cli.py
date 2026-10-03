@@ -12,6 +12,7 @@ def test_help_and_version_need_no_pdf():
     help_result = runner.invoke(app, ["--help"])
     assert help_result.exit_code == 0, help_result.output
     assert "parse" in help_result.output
+    assert "absences" in help_result.output
     assert "version" in help_result.output
 
     none = runner.invoke(app, [])
@@ -133,3 +134,23 @@ def test_cli_parse_synthetic(synthetic_detailed, tmp_path):
     assert alpha_prac2["conducted"] == 1
     beta_prac = next(c for c in names2["SAMPLE COURSE BETA"]["components"] if c["lecture_type"] == "PRAC")
     assert beta_prac["conducted"] == 1
+
+    absences = payload["absences"]
+    assert any(a["course_name"] == "SAMPLE COURSE ALPHA" and a["hours"] == 1 for a in absences)
+    gamma = next(a for a in absences if a["course_name"] == "SAMPLE COURSE GAMMA")
+    assert gamma["hours"] == 2
+    assert gamma["start"] == "14:00"
+    assert gamma["end"] == "16:00"
+    assert "SAMPLE COURSE GAMMA" in result.output
+    assert "Absences" in result.output
+
+
+def test_cli_absences_subcommand(synthetic_detailed):
+    result = runner.invoke(app, ["absences", str(synthetic_detailed)])
+    assert result.exit_code == 0, result.output
+    assert "SAMPLE COURSE GAMMA" in result.output
+    assert "SAMPLE COURSE ALPHA" in result.output
+    assert "14:00" in result.output
+    help_abs = runner.invoke(app, ["help", "absences"])
+    assert help_abs.exit_code == 0, help_abs.output
+    assert "attendance-parse absences" in help_abs.output

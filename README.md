@@ -45,18 +45,20 @@ attendance-parse --version
 attendance-parse parse .\detailed_dump.pdf -o summary.pdf
 attendance-parse parse .\detailed_dump.pdf -o summary.pdf --json summary.json
 attendance-parse parse .\detailed_dump.pdf -o summary.pdf --from 13.07.2026 --to 30.08.2026
+attendance-parse absences .\detailed_dump.pdf
 ```
 
 | Flag / command | Meaning |
 |---|---|
 | `parse` | Read a detailed dump and write the summary PDF |
+| `absences` | List lectures marked Absent (A). Adjacent hours on the same course and day are grouped. No output PDF required |
 | `-o` / `--output` | Summary PDF to write (required) |
 | `--json` | Optional JSON sidecar with the same figures |
 | `--from` / `--to` | Inclusive window as `dd.MM.yyyy`. Default: the dump's own duration |
 | `--lab-batch` | Optional, repeatable. If a practical row has a batch tag, keep only tags you list. Tags are the trailing letter+digits code on the course name; they are **not** always `J`-prefixed and can differ by course. Practicals with no tag are always kept. Default: keep every practical row in the dump |
 | `--threshold` | Exam-eligibility fraction per course (default `0.8`) |
 | `--version` / `version` | Print the version |
-| `--help` / `help` | Show help (`help parse` for the parse command) |
+| `--help` / `help` | Show help (`help parse`, `help absences`) |
 
 Example if you only want certain tagged labs (unbatched labs still count):
 

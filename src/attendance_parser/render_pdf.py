@@ -87,6 +87,8 @@ def render_pdf(report: Report, output: str | Path) -> Path:
 
     story.append(Spacer(1, 12))
     story.append(_projection_block(report, styles))
+    story.append(Spacer(1, 12))
+    story.append(_absences_block(report, styles))
 
     doc = SimpleDocTemplate(
         str(output),
@@ -304,6 +306,50 @@ def _projection_text(course, threshold: float) -> str:
             f"worst-case if {course.nu_hours} NU hour(s) become Absent: {course.worst_case_percentage:.2f}%"
         )
     return "; ".join(bits)
+
+
+def _absences_block(report: Report, styles: dict[str, ParagraphStyle]):
+    title = Paragraph(_esc("Absent lectures (status A; adjacent hours on the same day are grouped)"), styles["h2"])
+    if not report.absences:
+        return KeepTogether([title, Paragraph(_esc("Absences: none"), styles["body"])])
+    header = [
+        _p("Date", styles["proj_th"]),
+        _p("Course", styles["proj_th"]),
+        _p("Type", styles["proj_th"]),
+        _p("Time", styles["proj_th"]),
+        _p("Hours", styles["proj_th"]),
+    ]
+    rows = [header]
+    for item in report.absences:
+        rows.append(
+            [
+                _p(format_header_date(item.date), styles["proj_tdc"]),
+                _p(item.course_name, styles["proj_td"]),
+                _p(item.lecture_type, styles["proj_tdc"]),
+                _p(f"{item.start}–{item.end}", styles["proj_tdc"]),
+                _p(str(item.hours), styles["proj_tdc"]),
+            ]
+        )
+    usable = A4[0] - 24 * mm
+    table = Table(
+        rows,
+        colWidths=[0.14 * usable, 0.44 * usable, 0.10 * usable, 0.20 * usable, 0.12 * usable],
+        repeatRows=1,
+    )
+    table.setStyle(
+        TableStyle(
+            [
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
+    return KeepTogether([title, table])
 
 
 def _footer(canvas, doc, generated_at: str) -> None:

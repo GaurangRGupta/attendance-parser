@@ -15,6 +15,8 @@ def report_to_dict(report: Report) -> dict:
     student = payload["student"]
     student["report_from"] = format_header_date(report.student.report_from)
     student["report_to"] = format_header_date(report.student.report_to)
+    for item, absence in zip(payload["absences"], report.absences):
+        item["date"] = format_header_date(absence.date)
     return payload
 
 

@@ -37,6 +37,6 @@ def test_extract_synthetic_header_and_rows(synthetic_detailed):
     assert extracted.student.roll == "T001"
     assert extracted.student.report_from == date(2026, 7, 1)
     assert extracted.student.report_to == date(2026, 7, 31)
-    assert [s.sr for s in extracted.slots] == [1, 2, 3, 4, 5]
+    assert [s.sr for s in extracted.slots] == [1, 2, 3, 4, 5, 6, 7]
     slots = normalize_slots(extracted.slots)
     assert {s.batch for s in slots if s.lecture_type == "PRAC"} == {"A1", "B2", None}

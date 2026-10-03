@@ -12,7 +12,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 
 def write_synthetic_detailed_pdf(path: Path) -> Path:
-    """Write a 5-row dump: tagged labs A1/B2, unbatched lab, theory, NU."""
+    """Write a 7-row dump: tagged labs A1/B2, unbatched lab, theory, NU, two adjacent A hours."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     style = ParagraphStyle("body", fontName="Times-Roman", fontSize=10, leading=12)
@@ -34,6 +34,8 @@ def write_synthetic_detailed_pdf(path: Path) -> Path:
         ["3", "Sample Course AlphaT1-BTDS", "Jul 16, 2026", "10:00:01 AM", "11:00:00 AM", "A"],
         ["4", "Sample Course BetaP1-BTDS", "Jul 16, 2026", "11:00:01 AM", "12:00:00 PM", "P"],
         ["5", "Sample Course BetaT1-BTDS", "Jul 17, 2026", "9:00:01 AM", "10:00:00 AM", "NU"],
+        ["6", "Sample Course GammaT1-BTDS", "Jul 18, 2026", "2:00:01 PM", "3:00:00 PM", "A"],
+        ["7", "Sample Course GammaT1-BTDS", "Jul 18, 2026", "3:00:01 PM", "4:00:00 PM", "A"],
     ]
     table = Table(rows, colWidths=[20 * mm, 55 * mm, 35 * mm, 30 * mm, 30 * mm, 22 * mm])
     table.setStyle(

@@ -8,6 +8,7 @@ from datetime import date
 from datetime import datetime as dt
 
 from attendance_parser.models import (
+    Absence,
     ComponentRow,
     CourseSummary,
     Report,
@@ -124,6 +125,7 @@ def summarize(
         lab_batch=_lab_batch_label(lab_batches),
         threshold=threshold,
         slots_in_window=len(windowed),
+        absences=merge_absences(windowed),
         generated_at=dt.now().strftime("%d.%m.%Y %H:%M:%S"),
     )
 
@@ -154,6 +156,55 @@ def _percentage(present: int, held: int) -> float:
 
 def format_header_date(value: date) -> str:
     return value.strftime("%d.%m.%Y")
+
+
+def merge_absences(slots: list[Slot]) -> list[Absence]:
+    """Collapse adjacent Absent hours on the same course, type, and day into one lecture."""
+    missed = [s for s in slots if s.status == "A"]
+    missed.sort(key=lambda s: (s.date, s.display_name, s.lecture_type, _minutes(s.start), s.sr))
+    lectures: list[Absence] = []
+    for slot in missed:
+        if lectures:
+            prev = lectures[-1]
+            same = (
+                prev.date == slot.date
+                and prev.course_name == slot.display_name
+                and prev.lecture_type == slot.lecture_type
+                and _minutes(slot.start) <= _minutes_from_clock(prev.end) + 2
+            )
+            if same:
+                prev.end = _clock(slot.end)
+                prev.hours += 1
+                continue
+        lectures.append(
+            Absence(
+                date=slot.date,
+                course_name=slot.display_name,
+                lecture_type=slot.lecture_type,
+                start=_clock(slot.start),
+                end=_clock(slot.end),
+                hours=1,
+            )
+        )
+    return lectures
+
+
+def _parse_ampm(value: str):
+    return dt.strptime(value.strip(), "%I:%M:%S %p")
+
+
+def _minutes(value: str) -> int:
+    parsed = _parse_ampm(value)
+    return parsed.hour * 60 + parsed.minute
+
+
+def _clock(value: str) -> str:
+    return _parse_ampm(value).strftime("%H:%M")
+
+
+def _minutes_from_clock(value: str) -> int:
+    parsed = dt.strptime(value.strip(), "%H:%M")
+    return parsed.hour * 60 + parsed.minute
 
 
 def _lab_batch_label(lab_batches: list[str] | None) -> str:

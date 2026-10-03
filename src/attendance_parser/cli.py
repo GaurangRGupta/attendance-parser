@@ -12,7 +12,8 @@ from attendance_parser import __version__
 from attendance_parser.errors import AttendanceError
 from attendance_parser.json_out import write_json
 from attendance_parser.pipeline import build_report
-from attendance_parser.render_cli import render_cli
+from attendance_parser.models import Report
+from attendance_parser.render_cli import render_absences, render_cli
 from attendance_parser.render_pdf import render_pdf
 
 app = typer.Typer(
@@ -28,6 +29,22 @@ def _show_version(value: bool) -> None:
     if value:
         typer.echo(f"attendance-parse {__version__}")
         raise typer.Exit()
+
+
+def _load_report(
+    pdf: Path,
+    date_from: str | None,
+    date_to: str | None,
+    lab_batch: list[str],
+    threshold: float = 0.8,
+) -> Report:
+    return build_report(
+        pdf,
+        lab_batches=lab_batch or None,
+        date_from=_parse_cli_date(date_from, "--from"),
+        date_to=_parse_cli_date(date_to, "--to"),
+        threshold=threshold,
+    )
 
 
 def _parse_cli_date(value: str | None, flag: str):
@@ -65,7 +82,7 @@ def help_command(
     ctx: typer.Context,
     command_name: str | None = typer.Argument(
         None,
-        help="Subcommand to describe (parse, version, help).",
+        help="Subcommand to describe (parse, absences, version, help).",
     ),
 ) -> None:
     """Show help for the application or a specific command."""
@@ -132,13 +149,7 @@ def parse(
 ) -> None:
     """Parse a detailed dump and write a monthly-style summary PDF."""
     try:
-        report = build_report(
-            pdf,
-            lab_batches=lab_batch or None,
-            date_from=_parse_cli_date(date_from, "--from"),
-            date_to=_parse_cli_date(date_to, "--to"),
-            threshold=threshold,
-        )
+        report = _load_report(pdf, date_from, date_to, lab_batch, threshold)
         written = render_pdf(report, output)
         if json_path is not None:
             write_json(report, json_path)
@@ -147,3 +158,42 @@ def parse(
         raise typer.Exit(code=1) from exc
 
     typer.echo(render_cli(report, str(written)))
+
+
+@app.command()
+def absences(
+    pdf: Path = typer.Argument(
+        ...,
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        show_default=False,
+        help="Detailed SAP attendance PDF (one row per lecture hour).",
+    ),
+    date_from: str | None = typer.Option(
+        None,
+        "--from",
+        help="Inclusive start date (dd.MM.yyyy). Default: duration on the dump.",
+    ),
+    date_to: str | None = typer.Option(
+        None,
+        "--to",
+        help="Inclusive end date (dd.MM.yyyy). Default: duration on the dump.",
+    ),
+    lab_batch: list[str] = typer.Option(
+        [],
+        "--lab-batch",
+        help=(
+            "If a practical row has a batch tag, keep it only when the tag is one of these "
+            "(repeatable). Practicals with no tag are always kept. Default: keep every "
+            "practical row in the dump."
+        ),
+    ),
+) -> None:
+    """List lectures marked Absent (A). Adjacent hours on the same day are grouped."""
+    try:
+        report = _load_report(pdf, date_from, date_to, lab_batch)
+    except AttendanceError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(render_absences(report))

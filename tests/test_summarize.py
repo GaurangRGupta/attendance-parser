@@ -1,7 +1,9 @@
 from datetime import date
 
+from attendance_parser.models import RawSlot, Student
+from attendance_parser.normalize import normalize_slots
 from attendance_parser.pipeline import build_report
-from attendance_parser.summarize import bunks_remaining, catch_up_hours
+from attendance_parser.summarize import bunks_remaining, catch_up_hours, merge_absences, summarize
 
 
 def _by_name(report):
@@ -106,3 +108,44 @@ def test_monthly_window_matches_college_except_linguistics_backfill(sample_detai
     ling = courses["INTRODUCTION TO LINGUISTICS"]
     assert (_comp(ling, "THEO").conducted, _comp(ling, "THEO").attended) == (18, 16)
     assert ling.percentage == 88.89
+
+
+def _raw(sr: int, course: str, day: date, start: str, end: str, status: str) -> RawSlot:
+    return RawSlot(sr=sr, course_raw=course, date=day, start=start, end=end, status=status)
+
+
+def test_merge_adjacent_absent_hours_into_one_lecture():
+    day = date(2026, 7, 18)
+    other = date(2026, 7, 19)
+    slots = normalize_slots(
+        [
+            _raw(1, "GammaT1-BTDS", day, "2:00:01 PM", "3:00:00 PM", "A"),
+            _raw(2, "GammaT1-BTDS", day, "3:00:01 PM", "4:00:00 PM", "A"),
+            _raw(3, "GammaT1-BTDS", other, "10:00:01 AM", "11:00:00 AM", "A"),
+            _raw(4, "GammaT1-BTDS", other, "11:00:01 AM", "12:00:00 PM", "P"),
+        ]
+    )
+    lectures = merge_absences(slots)
+    assert len(lectures) == 2
+    first, second = lectures
+    assert first.hours == 2
+    assert first.start == "14:00"
+    assert first.end == "16:00"
+    assert first.lecture_type == "THEO"
+    assert second.hours == 1
+    assert second.date == other
+
+    student = Student(
+        name="TEST STUDENT",
+        number="00000000000",
+        roll="T001",
+        academic_year="2026-2027",
+        academic_session="Semester VII",
+        program="B Tech (Data Science)",
+        college="Test College",
+        report_from=date(2026, 7, 1),
+        report_to=date(2026, 7, 31),
+    )
+    report = summarize(student, slots)
+    assert len(report.absences) == 2
+    assert report.absences[0].hours == 2

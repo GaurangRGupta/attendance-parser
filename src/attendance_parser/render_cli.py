@@ -31,5 +31,24 @@ def render_cli(report: Report, pdf_path: str) -> str:
         lines.append("EXAM BLOCKERS: " + ", ".join(report.exam_blockers))
     else:
         lines.append("EXAM BLOCKERS: none")
+    lines.append("")
+    lines.append(render_absences(report))
     lines.append(f"Wrote {pdf_path}")
+    return "\n".join(lines)
+
+
+def render_absences(report: Report) -> str:
+    if not report.absences:
+        return "Absences: none"
+    lines = [
+        f"Absences ({len(report.absences)} lecture(s)):",
+        f"{'Date':<12} {'Course':<42} {'Type':<6} {'Time':<13} Hours",
+        "-" * 80,
+    ]
+    for item in report.absences:
+        time_span = f"{item.start}–{item.end}"
+        lines.append(
+            f"{format_header_date(item.date):<12} {item.course_name:<42} "
+            f"{item.lecture_type:<6} {time_span:<13} {item.hours}"
+        )
     return "\n".join(lines)

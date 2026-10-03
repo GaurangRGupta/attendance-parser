@@ -27,3 +27,15 @@ def test_rendered_pdf_contains_college_layout_and_figures(sample_detailed, tmp_p
 
     # Combined % sits in the table; Linguistics is theory-only so 69.23 appears once.
     assert text.count("69.23") >= 1
+    assert "Absent lectures" in text
+
+
+def test_rendered_pdf_lists_synthetic_absences(synthetic_detailed, tmp_path):
+    report = build_report(synthetic_detailed)
+    out = tmp_path / "summary.pdf"
+    render_pdf(report, out)
+    with pdfplumber.open(out) as doc:
+        text = "\n".join(page.extract_text() or "" for page in doc.pages)
+    assert "SAMPLE COURSE GAMMA" in text
+    assert "14:00" in text
+    assert "Absences: none" not in text

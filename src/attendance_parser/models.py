@@ -56,6 +56,18 @@ class ComponentRow:
 
 
 @dataclass
+class Absence:
+    """One missed lecture (adjacent A-hours on the same course/day collapsed)."""
+
+    date: date
+    course_name: str
+    lecture_type: str
+    start: str
+    end: str
+    hours: int
+
+
+@dataclass
 class CourseSummary:
     course_name: str
     components: list[ComponentRow]
@@ -78,6 +90,7 @@ class Report:
     lab_batch: str
     threshold: float
     slots_in_window: int
+    absences: list[Absence] = field(default_factory=list)
     generated_at: str = ""
     extra: dict = field(default_factory=dict)
 
